@@ -24,17 +24,21 @@ const registerUser =  asyncHandler( async(req,res)=>{
     }
     //checking for existing user
 
-    const existedUser = User.findOne({ $or: [{ username: username},{email : email}]}).exec();
+    const existedUser = await User.findOne({ $or: [{ username: username},{email : email}]}).exec();
 
     if(existedUser){
         throw new ApiError(
             409 ,//statuscode
-            "user already exists"
+            "USER WITH SAME USERNAME OR EMAIL ALREADY EXIST"
         )}
     //now uploading on cloudinary
-
+    let coverImageLocalPath;
+    if(req.files.coverImage){
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  
+   
     if(!avatarLocalPath){
        throw new ApiError(
         400, //statuscode
@@ -42,14 +46,19 @@ const registerUser =  asyncHandler( async(req,res)=>{
        )
     }
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    let coverImage= "";
+    if(coverImageLocalPath){
+        coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    }
+  
     if(!avatar){
         throw new ApiError(
             400, //statuscode
             "AVATAR FILE IS REQUIRED"
         )
     }
-    console.log("avatar url = ", avatar.url);
+    //console.log(req.files);
+    // console.log("avatar url = ", avatar.url);
 
     //now creating user object and making entry in db
     const user = await User.create({username: username.toLowerCase() ,
