@@ -32,6 +32,10 @@ const videoSchema = new Schema({
     owner:{
         type:Schema.Types.ObjectId,
         ref:"User"
+    },
+    videoPublicIdForCloudinary:{
+        type:String,
+        required: true
     }
 },{timestamps:true})
 

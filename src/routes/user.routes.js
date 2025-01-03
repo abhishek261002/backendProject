@@ -35,7 +35,7 @@ router.route("/edit-usercoverimage").patch(
 router.route("/c/:username").get(verifyJWT , getUserChannelProfile)
 
 
-route.route("/watch-history").get(verifyJWT, getWatchHistory)
+router.route("/watch-history").get(verifyJWT, getWatchHistory)
 
 
 export default router;

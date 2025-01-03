@@ -40,4 +40,7 @@ const deleteFromCloudinary = async(publicId) => {
         return null;
     }
 }
-export  {uploadOnCloudinary ,deleteFromCloudinary}
+const streamVideoFromCloudinary = async(publicId)=>{
+    return cloudinary.url(publicId+".mp4", {streaming_profile: "auto", resource_type: "video"})
+}
+export  {uploadOnCloudinary ,deleteFromCloudinary, streamVideoFromCloudinary}
