@@ -1,8 +1,10 @@
 import {asyncHandler} from "../utils/asyncHandler.js"
+import { isValidObjectId } from "mongoose"
 import { ApiError } from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import { deleteFromCloudinary, uploadOnCloudinary, streamVideoFromCloudinary } from "../utils/cloudinary.js"
 import {Video} from "../models/video.model.js"
+import { User } from "../models/user.model.js"
 
 const uploadNewVideo= asyncHandler(async(req,res)=>{
     //get user from req.user authmiddleware
@@ -132,7 +134,6 @@ const editExistingVideo = asyncHandler(async(req,res)=>{
 })
 
 const getVideoToStream = asyncHandler(async(req,res)=>{
-
     const {videoId} =  req.body;
     if(!videoId){
         throw new ApiError(400,"VIDEO NOT FOUND => VideoID")
@@ -149,4 +150,91 @@ const getVideoToStream = asyncHandler(async(req,res)=>{
                 .json(new ApiResponse(200, streamURL, "SUCCESSFULL"))
 })
 
-export {uploadNewVideo, deleteExistingVideo, editExistingVideo, getVideoToStream}
+const listAllVideosOfChannel = asyncHandler(async(req,res)=>{
+    const { username } = req.params; 
+    console.log(req.params);
+    if(!username?.trim()){
+            throw new ApiError(400, "USERNAME MISSING")
+        }
+    const Allvideos = await User.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{
+                from: "videos",
+                localField: "_id",
+                foreignField: "owner",
+                as: "allVideos",
+            }
+        },
+        {
+            $addFields:{
+                numOfVideos: {
+                    $size:"$allVideos"
+                }
+            }
+        },
+        {
+            $project:{
+                allVideos:1,
+                numOfVideos:1
+            }
+        }
+    ]
+        )
+    if(!Allvideos){
+        throw new ApiError(400,"ERROR IN FETCHING OR NO VIDEOS UPLOADED BY USER")
+    }
+    console.log(Allvideos);
+    return res.status(200)
+                .json(200,Allvideos[0], "ALL VIDEOS OF CHANNEL FETCHED SUCCESSFULLY")
+})
+
+const addVideoToWatchHistory = asyncHandler(async(req,res)=>{
+    const userId = req.user._id // Replace with the actual username
+    const videoId = req.body; // Replace with the actual video ID
+    const user = await User.updateOne(
+        { _id: userId }, // Match the user by username
+        { $push: { watchHistory: videoId } } // Add the video ID to watchHistory array
+      );
+})
+
+const togglePublishStatus= asyncHandler(async(req,res)=>{
+    const { videoId } = req.params;
+    const userId = req.user._id;
+    console.log(userId);
+  if (!isValidObjectId(videoId) || !userId) {
+    throw new ApiError(400, "Invalid Video ID");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(404, "Video Not Found");
+  }
+  const videoOwner = video?.owner;
+  
+  if (videoOwner.toString() !== userId.toString()) {
+    throw new ApiError(403, "You are not allowed to modify this video status");
+  }
+
+  const modifyVideoPublishStatus = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        isPublished: !video.isPublished,
+      },
+    },
+    { new: true }
+  );
+    
+    return res.status(200)
+            .json(new ApiResponse(200,modifyVideoPublishStatus, "VIDEO'S PUBLISH STATUS CHANGED SUCCESSFULLY"))
+
+})
+
+export {uploadNewVideo, deleteExistingVideo, editExistingVideo, getVideoToStream 
+    , listAllVideosOfChannel ,addVideoToWatchHistory , togglePublishStatus}
