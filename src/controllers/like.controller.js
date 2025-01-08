@@ -1,8 +1,6 @@
 import { isValidObjectId } from "mongoose";
 import { Like } from "../models/like.model.js";
 import { Video } from "../models/video.model.js";
-import { User } from "../models/user.model.js";
-import {Comment} from "../models/comment.model.js"
 import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
@@ -130,32 +128,73 @@ const getAllLikedVideoByUser = asyncHandler(async(req,res)=>{
     }
     const AllLikedVideos = await Like.aggregate([
         {
-            $match:{
-                likedBy: mongoose.Types.ObjectId(userId)
-            }
-        },
-        {
-            $lookup:{
-                from:"videos",
-                localField:"_id",
-                foreignField:"likedBy",
-                as:"allLikedVideos"
-                
-            }
-        },
-        {
-            $addFields:{
-                countOfLikedVideos: {
-                    $size:"$allLikedVideos"
-                }
-            }
+        $match: {
+          video: { $exists: true },
+          likedBy: new mongoose.Types.ObjectId(userId)
         }
+        },
+        {
+        $lookup: {
+          from: "videos",
+          localField: "video",
+          foreignField: "_id",
+          as: "video",
+          "pipeline":[
+                    {
+                        $project:{
+                                owner:1,
+                                thumbnail:1,
+                                title:1,
+                                views:1,
+                                createdAt:1
+                        }
+                        },
+                    ]
+        }
+        },
+        {
+        $addFields: {
+          video:{
+            $first:"$video"
+          },
+         
+        }
+        }, 
+        {
+        $lookup: {
+          from: "users",
+          localField: "video.owner", // Use the `owner` field from the `video` object
+          foreignField: "_id", // Match it with the `_id` in the `users` collection
+          as: "ownerDetails",
+          "pipeline":[
+            {
+            $project:{
+                        avatar:1,
+                        username:1,
+                        fullName:1
+                        }
+            }
+               ]
+                }
+       }
+     ,
+       {
+        $project: {
+          video:1,
+          ownerDetails:{
+                    $first: "$ownerDetails"
+                    }
+        }
+      },
     ])
+
+    if(!AllLikedVideos){
+        throw new ApiError(400,"LIKED VIDEOS NOT FOUND")
+    }
+    console.log(AllLikedVideos);
+    return res.status(200)
+                .json(new ApiResponse(200,AllLikedVideos, "LIKED VIDEOS FETCHED SUCCESSFULLY"))
 })
-
-
-
-
 
 
 export {
