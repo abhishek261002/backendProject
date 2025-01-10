@@ -196,6 +196,12 @@ const listAllVideosOfChannel = asyncHandler(async(req,res)=>{
 const addVideoToWatchHistory = asyncHandler(async(req,res)=>{
     const userId = req.user._id // Replace with the actual username
     const videoId = req.body; // Replace with the actual video ID
+    if(!userId){
+        throw new ApiError(400, "USER NOT LOGGED IN");
+    }
+  if (!isValidObjectId(videoId) || !videoId) {
+    throw new ApiError(400, "Invalid Video ID");
+  }
     const user = await User.updateOne(
         { _id: userId }, // Match the user by username
         { $push: { watchHistory: videoId } } // Add the video ID to watchHistory array
@@ -205,8 +211,10 @@ const addVideoToWatchHistory = asyncHandler(async(req,res)=>{
 const togglePublishStatus= asyncHandler(async(req,res)=>{
     const { videoId } = req.params;
     const userId = req.user._id;
-    console.log(userId);
-  if (!isValidObjectId(videoId) || !userId) {
+    if(!userId){
+        throw new ApiError(400, "USER NOT LOGGED IN");
+    }
+  if (!isValidObjectId(videoId) || !videoId) {
     throw new ApiError(400, "Invalid Video ID");
   }
 
