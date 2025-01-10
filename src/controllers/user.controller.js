@@ -5,12 +5,14 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary ,deleteFromCloudinary} from "../utils/cloudinary.js"
 import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+
 let avatarPublicID;
 let coverImagePublicID;
 const options = {
     httpOnly: true,
     secure:true
 }
+
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
         const user =  await User.findById(userId);
@@ -296,6 +298,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     return res.status(200)
         .json(new ApiResponse(200, user ,"AVATAR UPDATED SUCCESSFULLY"))
 })
+
 const updateUserCoverImage = asyncHandler(async(req,res)=>{
     //req.user
     //avatar = (upload on cloudinary req.files).url
@@ -327,6 +330,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
     return res.status(200)
         .json(new ApiResponse(200, user ,"COVER IMAGE UPDATED SUCCESSFULLY"))
 })
+
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
     const { username } = req.params; 
     console.log(req.params);
@@ -398,6 +402,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     return res.status(200)
         .json(new ApiResponse(200, channel[0] || {} , "CHANNEL PROFILE FETCHED SUCCESSFULLY"))
 })
+
 const getWatchHistory = asyncHandler(async(req,res)=>{
     const user =await User.aggregate([
         {
@@ -442,6 +447,8 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
 
     return res.status(200)
         .json( new ApiResponse(200,user.watchHistory, "WATCH HISTORY FETCHED SUCCESSFULLY"))
-})
+}
+)
+
 export {registerUser , loginUser ,logoutUser , refreshAccessToken , changeCurrentPassword ,getCurrentUser ,
      updateAccountDetails , updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory}   
