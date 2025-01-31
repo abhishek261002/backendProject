@@ -20,14 +20,13 @@ router.route("/logout").post(verifyJWT , logoutUser)
 router.route("/refresh-token").post(refreshAccessToken)
 router.route("/change-password").post(verifyJWT , changeCurrentPassword)
 router.route("/current-user").get(verifyJWT , getCurrentUser)
-router.route("/edit-accdetails").patch(verifyJWT , updateAccountDetails)
-
-router.route("/edit-useravatar").patch(
+router.route("/edit-accdetails").post(verifyJWT , updateAccountDetails)
+router.route("/edit-useravatar").post(
     verifyJWT,
     upload.single("avatar")
     , updateUserAvatar)
 
-router.route("/edit-usercoverimage").patch(
+router.route("/edit-usercoverimage").post(
          verifyJWT,
         upload.single("coverImage")
         , updateUserCoverImage)

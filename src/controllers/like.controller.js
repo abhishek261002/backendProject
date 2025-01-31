@@ -13,7 +13,7 @@ const toggleVideoLike = asyncHandler(async(req,res)=>{
     //if exists unlike video by deleting the document
 
 
-    const {videoId} = req.params;
+    const {videoId} = req.body;
     if(!isValidObjectId(videoId)){
         throw new ApiError(400,"VIDEO NOT FOUND")
     }

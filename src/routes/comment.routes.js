@@ -4,9 +4,12 @@ import { createCommentOnVideo, editCommentOnVideo ,
          deleteCommentOnVideo, getCommentsOnVideo} from "../controllers/comment.controller.js";
 const router = Router();
 
-router.route("/c/:videoId/create-comment").post(verifyJWT, createCommentOnVideo)
-router.route("/c/:videoId/edit-comment").post(verifyJWT, editCommentOnVideo)
-router.route("/c/:videoId/delete-comment").post(verifyJWT, deleteCommentOnVideo)
-router.route("/c/:videoId/delete-comment").post(verifyJWT, deleteCommentOnVideo)
-router.route("/c/:videoId/get-comments").post( getCommentsOnVideo)
+router.route("/:videoId")
+                            .post(verifyJWT, createCommentOnVideo)     // Create a comment
+                              // Edit a comment
+                             .patch(verifyJWT,editCommentOnVideo)// Delete a comment
+                            .get(getCommentsOnVideo);                  // Fetch comments
+
+router.route("/delete").delete(verifyJWT,deleteCommentOnVideo)
+// router.route("/edit-comment").post(verifyJWT,editCommentOnVideo)
 export default router;

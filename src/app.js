@@ -2,9 +2,9 @@ import express, { urlencoded } from "express"
 import cookieParser from "cookie-parser";
 import cors from "cors"
 const app= express();
-
+const allowedOrigins = ['http://localhost:5173'];
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: 'http://localhost:5173',
     credentials:true
 }))
 

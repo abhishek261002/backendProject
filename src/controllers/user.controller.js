@@ -2,6 +2,8 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import mongoose from "mongoose"
 import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/user.model.js"
+import {Like} from "../models/like.model.js"
+import {Subscription} from "../models/subscriptions.model.js"
 import {uploadOnCloudinary ,deleteFromCloudinary} from "../utils/cloudinary.js"
 import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
@@ -10,7 +12,8 @@ let avatarPublicID;
 let coverImagePublicID;
 const options = {
     httpOnly: true,
-    secure:true
+    secure: false,
+    sameSite: 'None',
 }
 
 const generateAccessAndRefreshToken=async(userId)=>{
@@ -58,9 +61,9 @@ const registerUser =  asyncHandler( async(req,res)=>{
     //now uploading on cloudinary
     let coverImageLocalPath;
     if(req.files.coverImage){
-        coverImageLocalPath = req.files.coverImage[0].path;
+        coverImageLocalPath = req.files.coverImage?.[0].path;
     }
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
   
    
     if(!avatarLocalPath){
@@ -132,6 +135,7 @@ const loginUser = asyncHandler(async(req,res)=>{
         throw new ApiError(401 , "USER NOT FOUND ,Verify login details" )
         
     }
+    
     const PassCorrect = await user.isPasswordCorrect(password);
     if(!PassCorrect){
         throw new ApiError(401,"PASSWORD INCORRECT")
@@ -142,9 +146,16 @@ const loginUser = asyncHandler(async(req,res)=>{
     
 
     return res.status(200)
-            .cookie("accessToken", accessToken , options)
+            .cookie("accessToken", accessToken , {
+                httpOnly: true,
+                secure: false,
+            })
             .cookie("refreshToken" ,refreshToken, options)
-            .json( new ApiResponse(200, loggedInUser , "LOGIN SUCCESSFULL"))
+            .json( new ApiResponse(200, 
+                                        {
+                                           user: loggedInUser, accessToken, refreshToken
+                                        } ,
+                                        "LOGIN SUCCESSFULL"))
 })
 
 const logoutUser = asyncHandler(async(req,res)=>{
@@ -163,8 +174,8 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
 
     return res.status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
+            .clearCookie("accessToken")
+            .clearCookie("refreshToken")
             .json(new ApiResponse(200,{}, "LOGOUT SUCCESSFUL"))
 })
 
@@ -196,6 +207,7 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
         throw new ApiError(401, error?.message || "Invalid refresh token")
     }
 })
+
 const changeCurrentPassword = asyncHandler(async(req,res)=>{
     //access user through refresh token
     //take old password from user to verify old password
@@ -232,8 +244,63 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 })
 
 const getCurrentUser = asyncHandler(async(req,res)=>{
+    const userId = req.user._id;
+    if(!userId){
+        throw new ApiError(400,"USER NOT LOGGED IN")
+    }
+    const likedVideos = await Like.aggregate([
+        {
+          $match:{
+            video: { $exists: true},
+            likedBy : new mongoose.Types.ObjectId(userId)
+          }
+        } ,
+        {
+          $project: {
+            video:1,
+            _id:0
+          }
+        }
+    ])
+
+    const likedComments = await Like.aggregate([
+        {
+          $match:{
+            comment: { $exists: true},
+            likedBy : new mongoose.Types.ObjectId(userId)
+          }
+        } ,
+        {
+          $project: {
+            comment:1,
+            _id:0
+          }
+        }
+      ])
+
+    const subscribedChannels = await Subscription.aggregate([
+        {
+            $match:{
+                subscriber : new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $project:{
+                channel :1,
+                _id:0
+            }
+        }
+    ])
+    const data = {
+        userData: req.user,
+        likedVideos: likedVideos?.map((v) => v.video) || [],
+        likedComments: likedComments?.map((c) => c.comment) || [],
+        subscribedChannels: subscribedChannels?.map((s) => s.channel) || [],
+    }
+
+
     return res.status(200)
-        .json(new ApiResponse(200 , req.user , "current user fetched successfully"))
+        .json(new ApiResponse(200 , data , "current user fetched successfully"))
 })
 
 const updateAccountDetails = asyncHandler(async(req,res)=>{
@@ -333,7 +400,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
     const { username } = req.params; 
-    console.log(req.params);
+   
     if(!username.trim()){
         throw new ApiError(400, "USERNAME MISSING")
     }
@@ -342,7 +409,8 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
             //search karo user through username
             username: username?.toLowerCase()
         }
-    },{
+    },
+    {
         //join karo user aur subscription models ko and _id se channel match kro
         $lookup:{
             from:"subscriptions",
@@ -404,10 +472,14 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
 })
 
 const getWatchHistory = asyncHandler(async(req,res)=>{
+    const userId = req.user._id
+    if(!userId){
+        throw new ApiError(400,"USER NOT LOGGED IN")
+    }
     const user =await User.aggregate([
         {
             $match:{
-                _id: new mongoose.Types.ObjectId(req.user._id)
+                _id: new mongoose.Types.ObjectId(userId)
             }
         },
         {
@@ -444,9 +516,13 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
         },
         
     ])
+  
+    if(!user){
+        throw new ApiError(400,"ERROR IN FETCHING WATCH HISTORY")
+    }
 
     return res.status(200)
-        .json( new ApiResponse(200,user.watchHistory, "WATCH HISTORY FETCHED SUCCESSFULLY"))
+        .json( new ApiResponse(200,user?.watchHistory, "WATCH HISTORY FETCHED SUCCESSFULLY"))
 }
 )
 

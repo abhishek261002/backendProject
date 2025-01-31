@@ -37,10 +37,7 @@ const editCommentOnVideo = asyncHandler(async(req,res)=>{
     if(!userId){
         throw new ApiError(400,"USER NOT LOGGED IN/FOUND")
     }
-    const {videoId} = req.params;
-    if(!videoId){
-        throw new ApiError(400,"VIDEO NOT FOUND")
-    }
+    
     const {commentId, newContent} = req.body;
     if(!commentId || !newContent){
         throw new ApiError(400,"SOME FIELDS MISSING")
@@ -50,8 +47,8 @@ const editCommentOnVideo = asyncHandler(async(req,res)=>{
     if(commentOwner?.toString() !== userId?.toString()){
         throw new ApiError(400,"OWNER OF COMMENT NOT MATCHING")
     }
-    const updateComment = await Comment.findByIdAndUpdate(
-        commentId,
+    const updateComment = await Comment.findOneAndUpdate(
+        {_id :commentId},
         {
             $set:{
                 content: newContent
@@ -72,22 +69,19 @@ const deleteCommentOnVideo= asyncHandler(async(req,res)=>{
     if(!userId){
         throw new ApiError(400,"USER NOT LOGGED IN/FOUND")
     }
-    const {videoId} = req.params;
-    if(!videoId){
-        throw new ApiError(400,"VIDEO NOT FOUND")
-    }
-    const {commentId} = req.body;
-    if(!commentId){
+  
+    const {_id} = req.body;
+    if(!_id){
         throw new ApiError(400,"COMMENT ID NOT RECIEVED")
     }
-    const comment = await Comment.findById(commentId);
+    const comment = await Comment.findById(_id);
     const commentOwner = comment?.owner;
     if(commentOwner?.toString() !== userId?.toString()){
         throw new ApiError(400,"OWNER OF COMMENT NOT MATCHING OR COMMENT NOT FOUND")
     }
 
     const deleteComment = await Comment.deleteOne({
-        $and:[{owner: userId},{video: videoId}, {_id: commentId}]
+        $and:[{owner: userId}, {_id: _id}]
     })
     if(!deleteComment){
         throw new ApiError(400,"ERROR IN DELETING COMMENT")
@@ -110,6 +104,14 @@ const getCommentsOnVideo = asyncHandler(async(req,res)=>{
         },
         {
             $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "result"
+              }
+        },
+        {
+            $lookup: {
               from: "users",
               localField: "owner",
               foreignField: "_id",
@@ -124,7 +126,7 @@ const getCommentsOnVideo = asyncHandler(async(req,res)=>{
                 },
               ],
             },
-          },    
+        },    
           {
             $addFields: {
               createdBy: {
@@ -139,6 +141,10 @@ const getCommentsOnVideo = asyncHandler(async(req,res)=>{
             $project: {
               content: 1,
               createdBy: 1,
+              createdAt: 1,
+              likesOnComment:{
+                $size: "$result"
+              }
             },
           },
     ])
@@ -146,7 +152,6 @@ const getCommentsOnVideo = asyncHandler(async(req,res)=>{
     if(!allCommentsOnVideo){
         throw new ApiError(400,"COMMENTS ON VIDEOS FOUND OR NO COMMENTS")
     }
-    console.log(allCommentsOnVideo);
     return res.status(200)
                 .json(new ApiResponse(200,allCommentsOnVideo,"COMMENTS FETCHED SUCCESSFULLY" ))
 })

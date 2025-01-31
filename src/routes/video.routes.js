@@ -3,7 +3,7 @@ import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { uploadNewVideo, deleteExistingVideo , editExistingVideo 
     ,getVideoToStream, listAllVideosOfChannel, addVideoToWatchHistory
-    ,togglePublishStatus} from "../controllers/video.controller.js";
+    ,togglePublishStatus, getAllVideos} from "../controllers/video.controller.js";
 
 const router = Router();
 
@@ -26,8 +26,9 @@ router.route("/edit-video").post(
     upload.single("newThumbnail"),
     editExistingVideo
 )
-router.route("/stream-video").post(getVideoToStream)
+router.route("/:videoId").post(getVideoToStream)
+router.route("/all-videos").get(getAllVideos)
 router.route("/c/:username").get( listAllVideosOfChannel)
-router.route("/watch-history").post(addVideoToWatchHistory)
-router.route("/c/:videoId").post(verifyJWT,  togglePublishStatus)
+router.route("/watch-history").post(verifyJWT,addVideoToWatchHistory)
+router.route("/toggle-ispublished").post(verifyJWT,  togglePublishStatus)
 export default router

@@ -9,7 +9,7 @@ const toggleSubscription = asyncHandler(async(req,res)=>{
     if(!userId || !isValidObjectId(userId)){
         throw new ApiError(400,"USER NOT FOUND")
     }
-    const {channelId} = req.params;
+    const {channelId} = req.params || req.body;
     if(!channelId || !isValidObjectId(channelId)){
         throw new ApiError(400,"CHANNEL NOT FOUND")
     }
