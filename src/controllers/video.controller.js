@@ -347,10 +347,14 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 });
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const allvideos = await Video.aggregate([
+  const { title } = req.query; // Get title from query parameter
+  const searchQuery = title ? { title: { $regex: title, $options: 'i' } } : {}; // Use regex for partial matching
+
+  const allVideos = await Video.aggregate([
     {
       $match: {
         isPublished: true,
+        ...searchQuery, // Apply search filter if title exists
       },
     },
     {
@@ -378,14 +382,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
     },
   ]);
 
-  if (!allvideos) {
+  if (!allVideos) {
     throw new ApiError(400, "NO VIDEOS FOUND");
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, allvideos, "ALL VIDEOS FETCHED SUCCESSFULLY"));
+    .json(new ApiResponse(200, allVideos, "ALL VIDEOS FETCHED SUCCESSFULLY"));
 });
+
 
 export {
   uploadNewVideo,

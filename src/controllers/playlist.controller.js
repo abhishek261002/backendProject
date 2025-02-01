@@ -39,7 +39,7 @@ const deletePlaylist = asyncHandler(async(req,res)=>{
     if(!userId || !isValidObjectId(userId)){
         throw new ApiError(400,"USER NOT FOUND")
     }
-    const {playlistId} = req.params || req.body;
+    const {playlistId} =  req.body;
     if(!playlistId || !isValidObjectId(playlistId)){
         throw new ApiError(400,"PLAYLIST NOT FOUND")
     }
