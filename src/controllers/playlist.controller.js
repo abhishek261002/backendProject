@@ -2,6 +2,7 @@ import mongoose,{isValidObjectId} from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { Playlist } from "../models/playlist.model.js"
+import {Video} from "../models/video.model.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
 const createPlaylist = asyncHandler(async(req,res)=>{
@@ -60,7 +61,7 @@ const updatePlaylist = asyncHandler(async(req,res)=>{
     if(!userId || !isValidObjectId(userId)){
         throw new ApiError(400,"USER NOT FOUND")
     }
-    const {playlistId} = req.params || req.body;
+    const {playlistId} =  req.body;
     if(!playlistId || !isValidObjectId(playlistId)){
         throw new ApiError(400,"PLAYLIST NOT FOUND")
     }
@@ -96,7 +97,7 @@ const addVideoToPlaylist = asyncHandler(async(req,res)=>{
     if(!videoId || !isValidObjectId(videoId)){
         throw new ApiError(400,"VIDEO NOT FOUND")
     }
-    const {playlistId} = req.params;
+    const {playlistId} = req.body;
     if(!playlistId || !isValidObjectId(playlistId)){
         throw new ApiError(400,"PLAYLIST NOT FOUND")
     }
@@ -105,12 +106,13 @@ const addVideoToPlaylist = asyncHandler(async(req,res)=>{
     if (!playlist) {
         throw new ApiError(400, "PLAYLIST NOT FOUND");
     }
-
-    if (playlist.videos.includes(videoId)) {
+    const video = await Video.findOne({_id : videoId})
+    if (playlist.videos.includes(video)) {
         throw new ApiError(400, "VIDEO ALREADY EXISTS IN THE PLAYLIST");
     }
 
-    playlist.videos.push(videoId);
+    playlist.videos.push(video);
+    
     await playlist.save({validateBeforeSave: false});
     
     return res.status(200)
@@ -152,7 +154,40 @@ const getUserPlaylists = asyncHandler(async(req,res)=>{
     if(!userId || !isValidObjectId(userId)){
         throw new ApiError(400,"USER NOT FOUND")
     }
-    const allPlaylistsMadeByUser = await Playlist.find({owner: userId});
+    const allPlaylistsMadeByUser = await Playlist.aggregate([
+        {
+            $match:{
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup:{
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "allVideosInPlaylist",
+                pipeline:[
+                    {
+                        $project:{
+                            _id :1,
+                            thumbnail:1,
+                            title :1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields:{
+                countOfAllVideosInPlaylist : {
+                    $size : "$allVideosInPlaylist"
+                },
+                coverVideoInPlaylist : {
+                    $first : "$allVideosInPlaylist"
+                }
+            }
+        }
+    ]);
     if(!allPlaylistsMadeByUser){
         throw new ApiError(400,"PLAYLISTS NOT FOUND OR NO PLAYLIST MADE BY USER")
     }
@@ -179,6 +214,14 @@ const getPlaylistById = asyncHandler(async(req,res)=>{
         },
         {
             $lookup:{
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "playlistOwner",
+        }
+    },
+        {
+            $lookup:{
                 from: "videos",
                 localField: "videos",
                 foreignField: "_id",
@@ -195,6 +238,7 @@ const getPlaylistById = asyncHandler(async(req,res)=>{
                                     $project:{
                                         username:1,
                                         avatar:1,
+                                        fullName:1
                                     }
                                 }
                             ]
@@ -219,20 +263,29 @@ const getPlaylistById = asyncHandler(async(req,res)=>{
         {
             $project:{
                 allVideosInPlaylist:1,
+                countOfAllVideosInPlaylist :{
+                    $size: "$allVideosInPlaylist"
+                },
                 name:1,
                 description:1,
-                createdAt:1
+                createdAt:1,
+                coverVideoInPlaylist : {
+                    $first : "$allVideosInPlaylist"
+                },
+                playlistOwner: {
+                    $first : "$playlistOwner"
+                }
             }
         }  
     ])
 
-   
+    
     if(!playlist){
         throw new ApiError(400,"ERROR IN FETCHING VIDEOS IN PLAYLIST OR PLAYLIST NOT FOUND")
     }
 
     return res.status(200)
-                .json(new ApiResponse(200,playlist,"PLAYLIST FETCHED SUCCESSFULLY"))
+                .json(new ApiResponse(200,playlist[0],"PLAYLIST FETCHED SUCCESSFULLY"))
 })
 
 export {addVideoToPlaylist, createPlaylist, removeVideoFromPlaylist , deletePlaylist,
