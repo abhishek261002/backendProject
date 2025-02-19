@@ -2,9 +2,9 @@ import express, { urlencoded } from "express"
 import cookieParser from "cookie-parser";
 import cors from "cors"
 const app= express();
-const allowedOrigins = ['http://localhost:5173',"https://videostream-xi.vercel.app"];
+const allowedOrigins = ["https://videostream-xi.vercel.app"];
 app.use(cors({
-    origin: allowedOrigins,
+    origin: "https://videostream-xi.vercel.app",
     credentials: true,
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type,Authorization"
