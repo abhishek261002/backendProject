@@ -11,8 +11,8 @@ import jwt from "jsonwebtoken"
 let avatarPublicID;
 let coverImagePublicID;
 const options = {
-    httpOnly: true,
-    secure: false,
+
+    secure: true,
     sameSite: 'None',
 }
 
@@ -146,10 +146,7 @@ const loginUser = asyncHandler(async(req,res)=>{
     
 
     return res.status(200)
-            .cookie("accessToken", accessToken , {
-                httpOnly: true,
-                secure: false,
-            })
+            .cookie("accessToken", accessToken , options)
             .cookie("refreshToken" ,refreshToken, options)
             .json( new ApiResponse(200, 
                                         {

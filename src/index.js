@@ -14,6 +14,9 @@ connectDB()
         console.log("ERRR : ",error);
         throw error;
     })
+    app.get("/",(req,res)=>{
+        res.send("api running")
+    })
 })
 .catch((error)=>{
     console.log("MONGODB CONNECTION FAILED :index.js " ,error);
