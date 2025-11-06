@@ -1,4 +1,4 @@
-import {v2 as cloudinary} from "cloudinary";
+ import {v2 as cloudinary} from "cloudinary";
 import fs from "fs";
 
 cloudinary.config({ 
@@ -12,7 +12,13 @@ const uploadOnCloudinary = async(localFilePath) => {
         if(!localFilePath) return null
         //upload file to cloudinary
         const response = await cloudinary.uploader.upload(localFilePath , {
-            resource_type: "auto"
+            resource_type: "auto",
+            auto_transcription : "true",
+           eager: [
+    { streaming_profile: "full_hd", format: "m3u8" },
+  ],
+  eager_async: true,
+        
         });
         if(response){
             fs.unlinkSync(localFilePath);

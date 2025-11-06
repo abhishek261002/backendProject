@@ -9,6 +9,7 @@ import {
 } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
+import {GoogleGenAI} from '@google/genai';
 
 const uploadNewVideo = asyncHandler(async (req, res) => {
   //get user from req.user authmiddleware
@@ -67,6 +68,37 @@ const uploadNewVideo = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, video[0], "VIDEO UPLOADED SUCCESSFULLY"));
 });
+
+const getVideoSummary = asyncHandler(async(req,res)=>{
+  const { transcriptText } = req.body;
+  if(!transcriptText){
+    throw new ApiError(400,"TRANSCRIPT NOT AVAILABLE FOR THE VIDEO");
+  }
+  const ai = new GoogleGenAI({
+    apiKey : process.env.GEMINI_API_KEY
+  });
+  const summary = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `You are an expert video summarizer.  
+Given the following transcript, summarize the key points of the video clearly and concisely.  
+
+Requirements:
+- Write the summary in bullet points format.  
+- Focus only on the main ideas, key facts, and takeaways.  
+- Exclude filler words, repetitions, and greetings.  
+- Keep it detailed with timestamps .  
+- Maintain the chronological order of events or topics if possible.  
+-dont use any symbol and just give proper spacing
+
+Transcript: ${transcriptText} `,
+  });
+  if(!summary){
+    throw new ApiError(400,"PROBLEM IN CREATING SUMMARY")
+  }
+    return res.status(200)
+              .json(new ApiResponse(200, summary?.text , "SUMMARY CREATED SUCCESSFULLY"))
+
+})
 
 const deleteExistingVideo = asyncHandler(async (req, res) => {
   //check req.user._id
@@ -401,4 +433,5 @@ export {
   addVideoToWatchHistory,
   togglePublishStatus,
   getAllVideos,
+  getVideoSummary
 };

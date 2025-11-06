@@ -3,7 +3,7 @@ import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { uploadNewVideo, deleteExistingVideo , editExistingVideo 
     ,getVideoToStream, listAllVideosOfChannel, addVideoToWatchHistory
-    ,togglePublishStatus, getAllVideos} from "../controllers/video.controller.js";
+    ,togglePublishStatus, getAllVideos, getVideoSummary } from "../controllers/video.controller.js";
 
 const router = Router();
 
@@ -18,7 +18,7 @@ router.route("/video-upload").post(verifyJWT,
     ]),
     uploadNewVideo
 )
-
+router.route("/video-summary").post(getVideoSummary)
 router.route("/video-delete").post(verifyJWT, deleteExistingVideo)
 
 router.route("/edit-video").post(
