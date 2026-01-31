@@ -5,7 +5,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js"
+  "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+  "start": "node src/index.js"
+},
+"engines": {
+  "node": "20.x"
 },
   "keywords": [
     "javascript",

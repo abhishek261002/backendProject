@@ -6,7 +6,7 @@ const allowedOrigins = ["http://localhost:5173/"];
 app.use(cors({
    origin: [
     "http://localhost:5173",
-    "https://your-frontend.vercel.app"
+    "https://frontend-video-project-fob6.onrender.com"
   ],
     credentials: true,
 }));
